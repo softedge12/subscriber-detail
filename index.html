@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Multi-Level Dropdown Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: auto; padding: 20px; background: #f9f9f9; }
+    .input-field { margin-bottom: 15px; }
+    .input-field label { display: block; margin-bottom: 5px; }
+    .input-field input, select { width: 100%; padding: 8px; }
+    button { padding: 10px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    button:hover { background-color: #0056b3; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #007bff; color: white; }
+    .delete-btn { color: red; cursor: pointer; }
+    .hidden { display: none; }
+    .spinner { display: none; }
+  </style>
+</head>
+<body>
+  <h2>Subscription Form</h2>
+  <div class="input-field">
+    <label for="name">Name</label>
+    <input type="text" id="name" required>
+  </div>
+  <div class="input-field">
+    <label for="email">Email</label>
+    <input type="email" id="email" required>
+  </div>
+  <div class="input-field">
+    <label for="whatsapp">WhatsApp Number</label>
+    <input type="text" id="whatsapp" required>
+  </div>
+  <div class="input-field">
+    <label for="subject">Select Subject</label>
+    <select id="subject" onchange="handleSubjectChange()">
+      <option value="">-- Select Subject --</option>
+      <option value="general_studies">सामान्य अध्ययन</option>
+      <option value="quarterly_magazine">त्रैमासिक समसामयिक पत्रिका</option>
+      <option value="history">इतिहास</option>
+      <option value="geography">भूगोल</option>
+      <option value="science">विज्ञान</option>
+    </select>
+  </div>
+  <div class="input-field hidden" id="part-container">
+    <label for="part">Select Part</label>
+    <select id="part" onchange="handlePartChange()"></select>
+  </div>
+  <div class="input-field hidden" id="chapter-container">
+    <label for="chapter">Select Chapter</label>
+    <select id="chapter"></select>
+  </div>
+  <button onclick="addToCart()">Add to Cart</button>
+
+  <h3>Cart</h3>
+  <table id="cart-table">
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Validity</th>
+        <th>Price</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <h4>Total: ₹<span id="total-price">0</span></h4>
+  <button onclick="proceedToPay()">Accept & Proceed to Pay</button>
+  <div class="input-field">
+    <label for="utr">UTR/Transaction Number</label>
+    <input type="text" id="utr" required>
+  </div>
+  <div class="input-field">
+    <label for="screenshot">Upload Payment Screenshot</label>
+    <input type="file" id="screenshot" accept="image/*">
+  </div>
+  <button onclick="submitForm()" id="submit-btn">Submit</button>
+  <div class="spinner" id="spinner">Uploading...</div>
+
+  <script>
+    const subjects = {
+      general_studies: {},
+      quarterly_magazine: { parts: ["जनवरी 2025", "अप्रैल 2025", "जुलाई 2025", "अक्टूबर 2025"] },
+      history: { parts: { "प्राचीन इतिहास": ["वैदिक काल", "पाषाण काल"], "मध्यकालीन इतिहास": ["दिल्ली सल्तनत", "मुगल साम्राज्य"], "आधुनिक इतिहास": ["1857 की क्रांति", "भारतीय स्वतंत्रता संग्राम"] } },
+      geography: { parts: { "भौतिक भूगोल": ["पर्वत", "नदियाँ"], "भारत का भूगोल": ["राज्य", "नगर"] } },
+      science: { parts: { "भौतिकी": ["गति", "शक्ति"], "रसायन": ["अवयव", "परमाणु"] } }
+    };
+
+    let cart = [];
+
+    function handleSubjectChange() {
+      const subject = document.getElementById('subject').value;
+      const partContainer = document.getElementById('part-container');
+      const chapterContainer = document.getElementById('chapter-container');
+      const partSelect = document.getElementById('part');
+      const chapterSelect = document.getElementById('chapter');
+      partSelect.innerHTML = '<option value="">-- Select Part --</option>';
+      chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+      partContainer.classList.add('hidden');
+      chapterContainer.classList.add('hidden');
+
+      if (!subject) return;
+
+      if (subject === 'quarterly_magazine') {
+        partContainer.classList.remove('hidden');
+        subjects[subject].parts.forEach(part => {
+          partSelect.innerHTML += `<option value="${part}">${part}</option>`;
+        });
+      } else if (subjects[subject].parts) {
+        partContainer.classList.remove('hidden');
+        Object.keys(subjects[subject].parts).forEach(part => {
+          partSelect.innerHTML += `<option value="${part}">${part}</option>`;
+        });
+      }
+    }
+
+    function handlePartChange() {
+      const subject = document.getElementById('subject').value;
+      const part = document.getElementById('part').value;
+      const chapterContainer = document.getElementById('chapter-container');
+      const chapterSelect = document.getElementById('chapter');
+      chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+      chapterContainer.classList.add('hidden');
+
+      if (subject && part && subjects[subject].parts[part]) {
+        chapterContainer.classList.remove('hidden');
+        subjects[subject].parts[part].forEach(chapter => {
+          chapterSelect.innerHTML += `<option value="${chapter}">${chapter}</option>`;
+        });
+      }
+    }
+
+    function addToCart() {
+      const subjectSelect = document.getElementById('subject');
+      const partSelect = document.getElementById('part');
+      const chapterSelect = document.getElementById('chapter');
+      const subject = subjectSelect.value;
+      const part = partSelect.value;
+      const chapter = chapterSelect.value;
+
+      if (!subject) {
+        alert('कृपया पहले विषय का चयन करें।');
+        return;
+      }
+
+      let item = { subject: '', validity: '', price: 0 };
+      if (subject === 'general_studies') {
+        item.subject = 'सामान्य अध्ययन';
+        item.validity = '4 माह';
+        item.price = 1000;
+      } else if (subject === 'quarterly_magazine') {
+        if (!part) { alert('कृपया पत्रिका का भाग चुनें।'); return; }
+        item.subject = `त्रैमासिक समसामयिक पत्रिका – ${part}`;
+        item.validity = '1 वर्ष';
+        item.price = 100;
+      } else {
+        if (!part || !chapter) { alert('कृपया विषय का भाग और अध्याय चुनें।'); return; }
+        item.subject = `${subjectSelect.options[subjectSelect.selectedIndex].text} – ${part} – ${chapter}`;
+        item.validity = '30 दिन';
+        item.price = 20;
+      }
+
+      cart.push(item);
+      renderCart();
+
+      // Reset dropdowns
+      subjectSelect.selectedIndex = 0;
+      partSelect.innerHTML = '<option value="">-- Select Part --</option>';
+      chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+      document.getElementById('part-container').classList.add('hidden');
+      document.getElementById('chapter-container').classList.add('hidden');
+    }
+
+    function renderCart() {
+      const tbody = document.getElementById('cart-table').querySelector('tbody');
+      tbody.innerHTML = '';
+      let total = 0;
+
+      cart.forEach((item, index) => {
+        total += item.price;
+        tbody.innerHTML += `<tr><td>${item.subject}</td><td>${item.validity}</td><td>₹${item.price}</td><td><span class="delete-btn" onclick="removeFromCart(${index})">Delete</span></td></tr>`;
+      });
+
+      document.getElementById('total-price').innerText = total;
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      renderCart();
+    }
+
+    function proceedToPay() {
+      const totalAmount = document.getElementById('total-price').innerText;
+      const upiLink = `upi://pay?pa=example@upi&pn=John%20Doe&am=${totalAmount}&cu=INR`;
+      window.open(upiLink, '_blank');
+    }
+
+    function submitForm() {
+      const submitBtn = document.getElementById('submit-btn');
+      const spinner = document.getElementById('spinner');
+      submitBtn.disabled = true;
+      spinner.style.display = 'block';
+
+      setTimeout(() => {
+        alert('Data submitted successfully!');
+        submitBtn.disabled = false;
+        spinner.style.display = 'none';
+      }, 2000);
+    }
+
+function submitForm() {
+  const submitBtn = document.getElementById('submit-btn');
+  const spinner = document.getElementById('spinner');
+  submitBtn.disabled = true;
+  spinner.style.display = 'block';
+
+  // फार्म डेटा एकत्र करें
+  const name = document.getElementById('name').value;
+  const email = document.getElementById('email').value;
+  const whatsapp = document.getElementById('whatsapp').value;
+  const utr = document.getElementById('utr').value;
+  
+  // कार्ट की जानकारी (यहाँ cart एक array है जिसे आपने पहले ही भर रखा है)
+  // उदाहरण: [{ subject: "सामान्य अध्ययन", validity: "4 माह", price: 1000 }, ... ]
+  
+  // इमेज फाइल को Base64 में कन्वर्ट करें
+  const fileInput = document.getElementById('screenshot');
+  const file = fileInput.files[0];
+  
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadend = function() {
+      // Base64 स्ट्रिंग से "data:image/png;base64," हटाएं यदि आवश्यक हो
+      let base64String = reader.result.split(',')[1];
+      
+      // तैयार करें डेटा ऑब्जेक्ट
+      const formData = {
+        name: name,
+        email: email,
+        whatsapp: whatsapp,
+        utr: utr,
+        cart: cart, // आपकी कार्ट में जो भी आइटम हैं
+        image: base64String,
+        imageType: file.type
+      };
+      
+      // Google Apps Script Web App URL में POST रिक्वेस्ट भेजें
+      fetch("https://script.google.com/macros/s/AKfycbxQXWQemzR_PpUrEAVebrFoIsB_qvtxkjIMVS_ICDVbn7dM50RA_LPIbTjGPDcuunUN/exec", {
+        method: "POST",
+        body: JSON.stringify(formData),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data.status === "success"){
+          alert("Data submitted successfully!");
+        } else {
+          alert("Error: " + data.message);
+        }
+        submitBtn.disabled = false;
+        spinner.style.display = 'none';
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Submission failed.");
+        submitBtn.disabled = false;
+        spinner.style.display = 'none';
+      });
+    }
+    reader.readAsDataURL(file);
+  } else {
+    alert("कृपया भुगतान का स्क्रीनशॉट अपलोड करें।");
+    submitBtn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+  </script>
+</body>
+</html>
