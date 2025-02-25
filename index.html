@@ -15,9 +15,51 @@
     .delete-btn { color: red; cursor: pointer; }
     .hidden { display: none; }
     .spinner { display: none; }
+
+    /* Modal Popup CSS (for both signup and instructions) */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .modal-content p {
+      margin-bottom: 20px;
+    }
+    .modal-content ul {
+      text-align: left;
+      margin: 0 auto 20px auto;
+      padding-left: 20px;
+    }
+    .modal-content button {
+      padding: 10px 20px;
+      margin: 5px;
+    }
+    /* Instructions button styling */
+    #instructionsBtn {
+      background-color: #28a745;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
+  <!-- Form Instructions Button -->
+  <button id="instructionsBtn">फॉर्म भरने के दिशा निर्देश</button>
+
   <h2>Subscription Form</h2>
   <div class="input-field">
     <label for="name">Name</label>
@@ -76,6 +118,36 @@
   </div>
   <button onclick="submitForm()" id="submit-btn">Submit</button>
   <div class="spinner" id="spinner">Uploading...</div>
+
+  <!-- Modal Popup for Signup/Subscription Message -->
+  <div id="modalPopup" class="modal">
+    <div class="modal-content">
+      <p>
+        यदि आप नए सब्सक्राइबर हैं तो signup बटन क्लिक करके signup करें, 
+        यदि आप पहले से सब्सक्राइबर हैं तो क्लोज बटन क्लिक करें।<br>
+        नया सब्सक्रिप्शन आपकी login id पर भुगतान सत्यापन के उपरांत 24 घंटे के अन्दर ऐड कर दिया जायेगा।
+      </p>
+      <button id="proceedSignupBtn">Proceed to Signup</button>
+      <button id="closeModalBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- Modal Popup for Form Instructions -->
+  <div id="instructionsModal" class="modal">
+    <div class="modal-content">
+      <h3>फॉर्म भरने के दिशा निर्देश</h3>
+      <ul>
+        <li>अपने नाम, ईमेल और WhatsApp नंबर दर्ज करें।</li>
+        <li>सही ईमेल फॉर्मेट में ईमेल डालें।</li>
+        <li>वांछित विषय चुनें; यदि आवश्यक हो तो Part/Chapter का चयन करें।</li>
+        <li>'Add to Cart' बटन पर क्लिक करके विषय कार्ट में जोड़ें।</li>
+        <li>'Accept & Proceed to Pay' बटन पर क्लिक करके भुगतान प्रक्रिया प्रारंभ करें।</li>
+        <li>UTR/Transaction नंबर दर्ज करें और भुगतान स्क्रीनशॉट अपलोड करें।</li>
+        <li>'Submit' बटन दबाकर फॉर्म सबमिट करें।</li>
+      </ul>
+      <button id="closeInstructionsBtn">Close</button>
+    </div>
+  </div>
 
   <script>
     const subjects = {
@@ -198,60 +270,117 @@
     function submitForm() {
       const submitBtn = document.getElementById('submit-btn');
       const spinner = document.getElementById('spinner');
+
+      // यदि पहले से ही सबमिट हो चुका है, तो कोई क्रिया न करें।
+      if (submitBtn.disabled) return;
+
+      // इनपुट वैल्यूज प्राप्त करें और ट्रिम करें
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const whatsapp = document.getElementById('whatsapp').value.trim();
+      const utr = document.getElementById('utr').value.trim();
+
+      // आवश्यक फील्ड की जांच करें
+      if (!name || !email || !whatsapp || !utr) {
+        alert("कृपया सभी बॉक्स भरें।");
+        return;
+      }
+
+      // वैध ईमेल का regex पैटर्न
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alert("कृपया वैध ईमेल दर्ज करें।");
+        return;
+      }
+
+      // यदि कार्ट खाली है, तो भी अलर्ट करें
+      if (cart.length === 0) {
+        alert("कृपया कम से कम एक विषय कार्ट में जोड़ें।");
+        return;
+      }
+
+      const fileInput = document.getElementById('screenshot');
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("कृपया भुगतान का स्क्रीनशॉट अपलोड करें।");
+        return;
+      }
+      
+      // सबमिट करते समय बटन डिसएबल करें और स्पिनर दिखाएं
       submitBtn.disabled = true;
       spinner.style.display = 'block';
 
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
-      const whatsapp = document.getElementById('whatsapp').value;
-      const utr = document.getElementById('utr').value;
-      
-      const fileInput = document.getElementById('screenshot');
-      const file = fileInput.files[0];
-
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = function() {
-          // Base64 string से "data:image/png;base64," का हिस्सा हटाकर केवल एनकोडेड डेटा लें
-          let base64String = reader.result.split(',')[1];
-          const formData = {
-            name: name,
-            email: email,
-            whatsapp: whatsapp,
-            utr: utr,
-            cart: cart,
-            image: base64String,
-            imageType: file.type
-          };
-
-          fetch("https://script.google.com/macros/s/AKfycbxQXWQemzR_PpUrEAVebrFoIsB_qvtxkjIMVS_ICDVbn7dM50RA_LPIbTjGPDcuunUN/exec", {
-            method: "POST",
-            mode: "no-cors", // CORS समस्या से बचने के लिए no-cors मोड का उपयोग करें
-            body: JSON.stringify(formData),
-            headers: {
-              "Content-Type": "application/json"
-            }
-          })
-          .then(response => {
-            // no-cors मोड में response opaque (अस्पष्ट) होगा
-            alert("Data submitted successfully!");
-            submitBtn.disabled = false;
-            spinner.style.display = 'none';
-          })
-          .catch(err => {
-            console.error(err);
-            alert("Submission failed.");
-            submitBtn.disabled = false;
-            spinner.style.display = 'none';
-          });
+      const reader = new FileReader();
+      reader.onloadend = function() {
+        const base64String = reader.result.split(',')[1];
+        const formData = {
+          name: name,
+          email: email,
+          whatsapp: whatsapp,
+          utr: utr,
+          cart: cart,
+          image: base64String,
+          imageType: file.type
         };
-        reader.readAsDataURL(file);
-      } else {
-        alert("कृपया भुगतान का स्क्रीनशॉट अपलोड करें।");
-        submitBtn.disabled = false;
-        spinner.style.display = 'none';
-      }
+
+        fetch("https://script.google.com/macros/s/AKfycbxQXWQemzR_PpUrEAVebrFoIsB_qvtxkjIMVS_ICDVbn7dM50RA_LPIbTjGPDcuunUN/exec", {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify(formData),
+          headers: {
+            "Content-Type": "application/json"
+          }
+        })
+        .then(response => {
+          // सफल सबमिशन के बाद फॉर्म रीसेट करें
+          document.getElementById('name').value = "";
+          document.getElementById('email').value = "";
+          document.getElementById('whatsapp').value = "";
+          document.getElementById('utr').value = "";
+          document.getElementById('screenshot').value = "";
+          document.getElementById('subject').selectedIndex = 0;
+          document.getElementById('part').innerHTML = '<option value="">-- Select Part --</option>';
+          document.getElementById('chapter').innerHTML = '<option value="">-- Select Chapter --</option>';
+          document.getElementById('part-container').classList.add('hidden');
+          document.getElementById('chapter-container').classList.add('hidden');
+          cart = [];
+          renderCart();
+          
+          spinner.style.display = 'none';
+          // पॉपअप दिखाएँ (Signup/Subscription Message)
+          showModal();
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Submission failed.");
+          submitBtn.disabled = false;
+          spinner.style.display = 'none';
+        });
+      };
+      reader.readAsDataURL(file);
     }
+
+    // Modal Popup functions for Signup/Subscription Message
+    function showModal() {
+      document.getElementById("modalPopup").style.display = "block";
+    }
+
+    document.getElementById("closeModalBtn").addEventListener("click", function(){
+      document.getElementById("modalPopup").style.display = "none";
+    });
+
+    document.getElementById("proceedSignupBtn").addEventListener("click", function(){
+      window.location.href = "YOUR_SIGNUP_PAGE_URL"; // अपना Signup पेज URL यहाँ डालें
+    });
+
+    // Modal Popup functions for Form Instructions
+    document.getElementById("instructionsBtn").addEventListener("click", function(){
+      document.getElementById("instructionsModal").style.display = "block";
+    });
+
+    document.getElementById("closeInstructionsBtn").addEventListener("click", function(){
+      document.getElementById("instructionsModal").style.display = "none";
+    });
   </script>
 </body>
 </html>
