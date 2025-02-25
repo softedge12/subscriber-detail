@@ -201,82 +201,57 @@
       submitBtn.disabled = true;
       spinner.style.display = 'block';
 
-      setTimeout(() => {
-        alert('Data submitted successfully!');
-        submitBtn.disabled = false;
-        spinner.style.display = 'none';
-      }, 2000);
-    }
-
-function submitForm() {
-  const submitBtn = document.getElementById('submit-btn');
-  const spinner = document.getElementById('spinner');
-  submitBtn.disabled = true;
-  spinner.style.display = 'block';
-
-  // फार्म डेटा एकत्र करें
-  const name = document.getElementById('name').value;
-  const email = document.getElementById('email').value;
-  const whatsapp = document.getElementById('whatsapp').value;
-  const utr = document.getElementById('utr').value;
-  
-  // कार्ट की जानकारी (यहाँ cart एक array है जिसे आपने पहले ही भर रखा है)
-  // उदाहरण: [{ subject: "सामान्य अध्ययन", validity: "4 माह", price: 1000 }, ... ]
-  
-  // इमेज फाइल को Base64 में कन्वर्ट करें
-  const fileInput = document.getElementById('screenshot');
-  const file = fileInput.files[0];
-  
-  if (file) {
-    const reader = new FileReader();
-    reader.onloadend = function() {
-      // Base64 स्ट्रिंग से "data:image/png;base64," हटाएं यदि आवश्यक हो
-      let base64String = reader.result.split(',')[1];
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const whatsapp = document.getElementById('whatsapp').value;
+      const utr = document.getElementById('utr').value;
       
-      // तैयार करें डेटा ऑब्जेक्ट
-      const formData = {
-        name: name,
-        email: email,
-        whatsapp: whatsapp,
-        utr: utr,
-        cart: cart, // आपकी कार्ट में जो भी आइटम हैं
-        image: base64String,
-        imageType: file.type
-      };
-      
-      // Google Apps Script Web App URL में POST रिक्वेस्ट भेजें
-      fetch("https://script.google.com/macros/s/AKfycbxQXWQemzR_PpUrEAVebrFoIsB_qvtxkjIMVS_ICDVbn7dM50RA_LPIbTjGPDcuunUN/exec", {
-        method: "POST",
-        body: JSON.stringify(formData),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if(data.status === "success"){
-          alert("Data submitted successfully!");
-        } else {
-          alert("Error: " + data.message);
-        }
-        submitBtn.disabled = false;
-        spinner.style.display = 'none';
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Submission failed.");
-        submitBtn.disabled = false;
-        spinner.style.display = 'none';
-      });
-    }
-    reader.readAsDataURL(file);
-  } else {
-    alert("कृपया भुगतान का स्क्रीनशॉट अपलोड करें।");
-    submitBtn.disabled = false;
-    spinner.style.display = 'none';
-  }
-}
+      const fileInput = document.getElementById('screenshot');
+      const file = fileInput.files[0];
 
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = function() {
+          // Base64 string से "data:image/png;base64," का हिस्सा हटाकर केवल एनकोडेड डेटा लें
+          let base64String = reader.result.split(',')[1];
+          const formData = {
+            name: name,
+            email: email,
+            whatsapp: whatsapp,
+            utr: utr,
+            cart: cart,
+            image: base64String,
+            imageType: file.type
+          };
+
+          fetch("YOUR_APPS_SCRIPT_WEB_APP_URL", {
+            method: "POST",
+            mode: "no-cors", // CORS समस्या से बचने के लिए no-cors मोड का उपयोग करें
+            body: JSON.stringify(formData),
+            headers: {
+              "Content-Type": "application/json"
+            }
+          })
+          .then(response => {
+            // no-cors मोड में response opaque (अस्पष्ट) होगा
+            alert("Data submitted successfully!");
+            submitBtn.disabled = false;
+            spinner.style.display = 'none';
+          })
+          .catch(err => {
+            console.error(err);
+            alert("Submission failed.");
+            submitBtn.disabled = false;
+            spinner.style.display = 'none';
+          });
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert("कृपया भुगतान का स्क्रीनशॉट अपलोड करें।");
+        submitBtn.disabled = false;
+        spinner.style.display = 'none';
+      }
+    }
   </script>
 </body>
 </html>
